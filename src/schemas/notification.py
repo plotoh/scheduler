@@ -1,15 +1,15 @@
 # schemas.py
 from datetime import datetime, timezone
 from typing import Literal
-from pydantic import BaseModel, field_validator, ConfigDict
+from pydantic import BaseModel, field_validator, ConfigDict, Field
 
 
 # решил вместо просто изменения обработки даты на дату и время прикрутить pydantic
-class NotificationCreate(BaseModel):
-    user_id: str
-    message: str
+class NotificationBase(BaseModel):
+    user_id: int
+    message: str = Field(None, min_length=10, max_length=200)
     send_at: datetime
-    priority: Literal['low', 'normal', 'high'] = 'normal'
+    # priority: Literal['low', 'normal', 'high'] = 'normal'
 
     @field_validator('send_at', mode='before')  # выполнить эту функцию до стандартной валидации поля send_at
     @classmethod
@@ -54,3 +54,8 @@ class NotificationCreate(BaseModel):
         return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
 
     model_config = ConfigDict(frozen=True)  # превращает уведомление в неизменяемый объект
+
+
+# class NotificationResponse(NotificationBase):
+#     id: int
+
