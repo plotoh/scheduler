@@ -1,17 +1,18 @@
-# schemas.py
+# src/schemas/notification.py
+
 from datetime import datetime, timezone
-from typing import Literal
+from typing import Optional
 from pydantic import BaseModel, field_validator, ConfigDict, Field
 
 
-# решил вместо просто изменения обработки даты на дату и время прикрутить pydantic
 class NotificationBase(BaseModel):
     user_id: int
-    message: str = Field(None, min_length=10, max_length=200)
+    message: str = Field(..., min_length=10, max_length=200)
     send_at: datetime
     # priority: Literal['low', 'normal', 'high'] = 'normal'
 
-    @field_validator('send_at', mode='before')  # выполнить эту функцию до стандартной валидации поля send_at
+    # мне не нравится обработка в цикле, думаю над лучшим вариантом
+    @field_validator('send_at', mode='before')
     @classmethod
     def parse_send_at(cls, value) -> datetime:
         """
@@ -34,7 +35,7 @@ class NotificationBase(BaseModel):
                 "%d %B %Y %H:%M",
                 "%d %b %Y %H:%M",
             ]
-            for fmt in formats:  # мне не нравится обработка в цикле, думаю над лучшим вариантом
+            for fmt in formats:
                 try:
                     dt = datetime.strptime(value, fmt)
                     return cls.__check_timezone(dt)
@@ -43,7 +44,7 @@ class NotificationBase(BaseModel):
             raise ValueError(f"Не удалось распарсить время: {value}")
 
         # type(send_at) - datetime
-        if isinstance(value, datetime):
+        elif isinstance(value, datetime):
             return cls.__check_timezone(value)
 
         # type(send_at) - неподдерживаемый тип
@@ -54,6 +55,17 @@ class NotificationBase(BaseModel):
         return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
 
     model_config = ConfigDict(frozen=True)  # превращает уведомление в неизменяемый объект
+
+
+class NotificationCreate(NotificationBase):
+    pass
+
+
+class NotificationResponse(NotificationBase):
+    id: int
+    status: str
+    created_at: Optional[datetime] = None
+
 
 
 # class NotificationResponse(NotificationBase):

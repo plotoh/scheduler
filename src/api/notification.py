@@ -1,27 +1,29 @@
-# notif_api.py
-from typing import List
+# src/api/notification.py
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
+import asyncpg
 
-from fastapi import Depends, Response, APIRouter, HTTPException, status
-
-
-from src.schemas import NotificationBase
-from src.scheduler import Scheduler
+from src.schemas.notification import NotificationCreate, NotificationResponse
+from src.service.scheduler import Scheduler
+from src.dependencies import get_db
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
+
 
 @router.post('/',
              summary="Создание уведомления",
              description="Создание уведомления от пользователя")
 async def create_notification(
-        notif_data: NotificationBase,
-        response: Response
-        # user_id: int = Depends(get_current_user_id)) пока без авторизации
-    ):
-    scheduler = Scheduler()
+        notif_data: NotificationCreate,
+        conn: asyncpg.Connection = Depends(get_db),
+        # response: Response,
+        # user_id: int = Depends(get_user_id)) пока без авторизации
+):
     try:
-        res = await scheduler.schedule(notif_data)
-        response.status_code = status.HTTP_201_CREATED
-        return res
+        scheduler = Scheduler(conn)
+        res = await scheduler.add_notification(notif_data)
+        # response.status_code = status.HTTP_201_CREATED
+        # return res
 
     except ValueError as ve:
         raise HTTPException(
@@ -31,27 +33,28 @@ async def create_notification(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            detail="Не удалось создать уведомление: " + str(e)
         )
 
 
 @router.get('/',
-            response_model=List[NotificationBase],
+            response_model=List[NotificationResponse],
             summary="Получить уведомления",
             description='Получение уведомлений из БД, пока что без авторизации')
 async def get_user_notifications(
-        response: Response,
-        # user_id: Optional[int] = Depends(get_current_user_id),
+        # response: Response,
+        # user_id: int = Depends(get_user_id),
+        # пока без пагинации, offset limit
         user_id: int = None,
         notif_status: str = 'pending',
-        # пока без пагинации, offset limit
-        ):
-        scheduler = Scheduler()
-        try:
-            res = await scheduler.get_notifications(user_id=user_id, status=notif_status)
-            response.status_code = status.HTTP_200_OK
-            return res
-
-
-
-
+        conn: asyncpg.Connection = Depends(get_db)
+):
+    try:
+        scheduler = Scheduler(conn)
+        notifications = await scheduler.get_notifications(user_id=user_id, status=notif_status)
+        return notifications
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Ошибка при получении уведомлений: " + str(e)
+        )

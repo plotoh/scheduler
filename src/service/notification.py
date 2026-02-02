@@ -1,4 +1,4 @@
-# notif_service.py
+# src/service.notification.py
 from abc import ABC, abstractmethod
 
 
