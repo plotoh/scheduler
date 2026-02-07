@@ -7,6 +7,11 @@ authors = [
 ]
 license = {text = "MIT"}
 requires-python = "^3.12"
+packages = [
+
+    { include = "**/*.py", from = "src" },
+]
+package-mode = false
 
 [tool.poetry.dependencies]
 fastapi = "0.128.0"
@@ -17,6 +22,3 @@ pydantic = {version = "^2.12.5", extras = ["email"]}
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-packages = [
-    { include = "**/*.py", from = "src" },
-]
