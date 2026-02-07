@@ -29,10 +29,7 @@ class Database:
             yield conn
 
     async def init_db(self):
-        # async with asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=5) as pool:
-        #     async with pool.acquire() as conn:
         async with self.connection() as conn:
-            # Создание таблицы пользователей
             await conn.execute("""
                     CREATE TABLE IF NOT EXISTS users (
                         id SERIAL PRIMARY KEY,
@@ -44,19 +41,23 @@ class Database:
                     )
                 """)
 
-            # Создание таблицы уведомлений
             await conn.execute("""
-                    CREATE TABLE IF NOT EXISTS scheduled_notifications (
-                        id SERIAL PRIMARY KEY,
-                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                        message TEXT NOT NULL,
-                        channel TEXT NOT NULL,
-                        send_at TIMESTAMPTZ NOT NULL,
-                        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-                        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'failed')),
-                        timezone TEXT DEFAULT 'UTC'
-                    )
-                """)
+                CREATE TABLE IF NOT EXISTS scheduled_notifications (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    message TEXT NOT NULL,
+                    channel VARCHAR(20) NOT NULL DEFAULT 'email',
+                    send_at TIMESTAMP NOT NULL,
+                    status VARCHAR(20) NOT NULL DEFAULT 'pending' 
+                        CHECK (status IN ('pending', 'sent', 'failed')),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            await conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_notifs_user_status 
+                ON scheduled_notifications(user_id, status);
+            """)
 
 
 db = Database()

@@ -1,6 +1,8 @@
 # src/service.notification.py
 from abc import abstractmethod, ABC
 from datetime import datetime, timezone
+from typing import List
+
 import asyncpg
 
 from src.schemas.notification import NotificationBase
@@ -37,27 +39,37 @@ class Scheduler:
     def __init__(self, connection: asyncpg.Connection):
         self.conn = connection
 
-    async def add_notification(self, data: NotificationBase):
-        user_id, message, channel, send_at = data.user_id, data.message, data.channel, data.send_at
+    async def add_notification(self, data: NotificationBase) -> dict:
+        user_exists = await self.conn.fetchval(
+            "SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)",
+            data.user_id
+        )
 
-        # добавить проверки на существование пользователя?? / корректность сообщения, таймстампа?
+        if not user_exists:
+            raise ValueError(f"Пользователь с ID {data.user_id} не найден")
 
-        # async with AsyncDB() as conn: # execute
-        res = await self.conn.fetchrow("""
-            INSERT INTO scheduled_notifications (user_id, message, channel, send_at, status)
-            VALUES ($1, $2, $3, $4, 'pending')
-            RETURNING id, user_id, message, channel, send_at, status, created_at
-        """, user_id, message, channel, send_at)
+        if data.send_at < datetime.now():
+            raise ValueError("Дата отправки не может быть в прошлом")
 
+        result = await self.conn.fetchrow("""
+                  INSERT INTO scheduled_notifications 
+                  (user_id, message, channel, send_at, status)
+                  VALUES ($1, $2, $3, $4, 'pending')
+                  RETURNING 
+                      id, user_id, message, channel, send_at, 
+                      status, created_at
+              """,
+                                          data.user_id, data.message, data.channel, data.send_at)
+
+        return dict(result) if result else {}
         # добавить логгер - print(res, f"Запланировано: user_id={user_id}, время={send_at}")
-        return dict(res) if res else {}
 
     async def get_notifications(
             self,
             user_id: int = None,
             status: str = 'pending'
-    ):
-        # async with AsyncDB() as conn:
+    )-> List[dict]:
+
         res = await self.conn.fetch("""
             SELECT * FROM scheduled_notifications
             WHERE user_id = $1 AND status = $2

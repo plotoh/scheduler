@@ -1,5 +1,5 @@
 [project]
-name = "notify-app"
+name = "notify_app"
 version = "0.1.0"
 description = "Notify app based on Fast API"
 authors = [
@@ -16,3 +16,7 @@ pydantic = {version = "^2.12.5", extras = ["email"]}
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+packages = [
+    { include = "**/*.py", from = "src" },
+]
