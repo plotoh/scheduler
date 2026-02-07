@@ -8,20 +8,28 @@ import asyncpg
 import uvicorn
 
 from src.database import db
-from src.service.scheduler import Scheduler
+from src.service.notification import Scheduler
 from fastapi import FastAPI
-from src.api.notification import router as notif_router
+from src.api import main_router
 
 """
 прописать аннотации
+
+прописать авторизацию
+
+прописать добавление пользователя в бд
+
+прописать взаимодействие таблиц друг с другом
+
+прописать проверку на существование пользователя
 """
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
-        await db.initialize()
-        await db.init_tables()
+        await db.create_pool()
+        await db.init_db()
         # await asyncio.gather(db.create_pool(), db.init_db())
 
         yield
@@ -36,14 +44,16 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-app.include_router(notif_router)
+app.include_router(main_router)
 
 
 if __name__ == "__main__":
 
     uvicorn.run(
         "src.main:app",
-        host="0.0.0.0",
+        host="127.0.0.1",
         port=8000,
         reload=True,
     )
+
+

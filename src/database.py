@@ -3,7 +3,7 @@ import asyncpg
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Optional
 
-from src.config import DATABASE_URL
+from src.config import settings
 
 
 class Database:
@@ -14,7 +14,7 @@ class Database:
         if self.__pool:
             return
 
-        self.__pool = await asyncpg.create_pool(DATABASE_URL)  # добавить настройки пула
+        self.__pool = await asyncpg.create_pool(settings.DATABASE_URL)  # добавить настройки пула
 
     async def close(self):
         if self.__pool:
@@ -32,28 +32,34 @@ class Database:
         # async with asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=5) as pool:
         #     async with pool.acquire() as conn:
         async with self.connection() as conn:
-            await conn.execute("\n"
-                               "                CREATE TABLE IF NOT EXISTS users (\n"
-                               "                                    id SERIAL PRIMARY KEY,\n"
-                               "                                    email TEXT,\n"
-                               "                                    phone_number TEXT,\n"
-                               "                                )\n"
-                               "                            ")
+            # Создание таблицы пользователей
+            await conn.execute("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id SERIAL PRIMARY KEY,
+                        username TEXT NOT NULL UNIQUE,
+                        password TEXT NOT NULL,
+                        email TEXT UNIQUE,
+                        phone_number TEXT UNIQUE,
+                        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
 
-            await conn.execute("\n"
-                               "                CREATE TABLE IF NOT EXISTS scheduled_notifications (\n"
-                               "                                                    id SERIAL PRIMARY KEY,\n"
-                               "                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n"
-                               "                        message TEXT NOT NULL,\n"
-                               "                        send_at TIMESTAMPTZ NOT NULL,\n"
-                               "                        status TEXT NOT NULL CHECK (status IN ('pending', 'sent'))\n"
-                               "                    )\n"
-                               "                ")
+            # Создание таблицы уведомлений
+            await conn.execute("""
+                    CREATE TABLE IF NOT EXISTS scheduled_notifications (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        message TEXT NOT NULL,
+                        channel TEXT NOT NULL,
+                        send_at TIMESTAMPTZ NOT NULL,
+                        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'failed')),
+                        timezone TEXT DEFAULT 'UTC'
+                    )
+                """)
 
 
 db = Database()
-"""решил инициализировать здесь, чтобы импортировать - это дает один экземпляр бд, простоту кода. наверное??? """
-
 
 # Контекстный менеджер для подключения
 # class AsyncDB:

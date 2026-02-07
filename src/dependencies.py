@@ -6,9 +6,7 @@ from fastapi import Request, Depends
 from src.database import db
 
 
-# зависимость для ручек
-async def get_db(
-    request: Request
-) -> AsyncGenerator[asyncpg.Connection, None]:
+# зависимость БД для ручек
+async def get_db() -> AsyncGenerator[asyncpg.Connection, None]:
     async with db.connection() as conn:
         yield conn

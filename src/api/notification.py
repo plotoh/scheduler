@@ -4,12 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 import asyncpg
 
 from src.schemas.notification import NotificationCreate, NotificationResponse
-from src.service.scheduler import Scheduler
+from src.service.notification import Scheduler
 from src.dependencies import get_db
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
 
 
+# при создании уведомления оно не подтягивается не откуда,требуется ручной ввод
 @router.post('/',
              summary="Создание уведомления",
              description="Создание уведомления от пользователя")
