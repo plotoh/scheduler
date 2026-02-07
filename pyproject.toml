@@ -1,24 +1,25 @@
-[project]
-name = "notify_app"
+[tool.poetry]
+name = "notify-app"
 version = "0.1.0"
 description = "Notify app based on Fast API"
-authors = [
-    {name = "Your Name",email = "you@example.com"}
-]
-license = {text = "MIT"}
-requires-python = "^3.12"
-packages = [
-
-    { include = "**/*.py", from = "src" },
-]
-package-mode = false
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+packages = [{ include = "**/*.py", from = "src" }]
 
 [tool.poetry.dependencies]
+python = "^3.12"
 fastapi = "0.128.0"
-uvicorn = {version = "0.40.0", extras = ["standard"]}
-pydantic = {version = "^2.12.5", extras = ["email"]}
+uvicorn = { version = "0.40.0", extras = ["standard"] }
+asyncpg = "^0.29.0"
+pydantic = "^2.12.5"
+python-dateutil = "^2.8.2"
+python-dotenv = "^1.0.0"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.0.0"
+isort = "^5.13.2"
+mypy = "^1.8.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
-
