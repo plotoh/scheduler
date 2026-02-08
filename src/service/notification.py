@@ -94,24 +94,25 @@ class Scheduler:
                 'success': f"[{datetime.now().isoformat()}] Нет уведомлений для отправки"
             }
 
-        # Проверяем, есть ли канал у пользователя
-        user_channel = rows[0]['channel'] if rows else None
-        channel_class = self.channels.get(user_channel, EmailChannel())
+        sent_count = 0
 
-        # Отправляем уведомления
-        for notification in rows:
-            await channel_class.send(
-                user_id=user_id,
-                message=notification['message']
-            )
-            # Обновляем статус уведомления
+        for row in rows:
+            channel_name = row["channel"]
+            channel_class = self.channels.get(channel_name)
+
+            if not channel_class:
+                print(f"Неизвестный канал: {channel_name} → пропускаем")
+                continue
+
+            await channel_class.send(user_id, row["message"])
+
             await self.conn.execute(
                 "UPDATE scheduled_notifications SET status = 'sent' WHERE id = $1",
-                notification['id']
+                row["id"]
             )
+            sent_count += 1
 
         return {
-            'success': f"Отправлено {len(rows)} уведомлений через канал: {user_channel}",
-            'channel': user_channel,
-            'count': len(rows)
+            "success": f"Отправлено {sent_count} уведомлений",
+            "count": sent_count
         }
